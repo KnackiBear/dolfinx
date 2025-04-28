@@ -87,7 +87,6 @@ from dolfinx import fem, io, mesh, plot
 from dolfinx.fem.petsc import LinearProblem
 
 import time
-import h5utils
 
 # -
 
@@ -100,13 +99,13 @@ import h5utils
 # <dolfinx.fem.FunctionSpace>` $V$ on the mesh.
 
 # +
-msh = mesh.create_rectangle(
+msh = mesh.create_box(
     comm=MPI.COMM_WORLD,
-    points=((0.0, 0.0), (2.0, 1.0)),
-    n=(32, 16),
-    cell_type=mesh.CellType.triangle,
+    points=((0.0, 0.0, 0.0), (2.0, 1.0, 1.0)),
+    n=(32, 16, 16),
+    cell_type=mesh.CellType.tetrahedron,
 )
-V = fem.functionspace(msh, ("Lagrange", 1))
+V = fem.functionspace(msh, ("Lagrange", 2))
 # -
 
 # The second argument to {py:func}`functionspace
@@ -132,7 +131,7 @@ facets = mesh.locate_entities_boundary(
 # boundary facets using {py:func}`locate_dofs_topological
 # <dolfinx.fem.locate_dofs_topological>`:
 
-dofs = fem.locate_dofs_topological(V=V, entity_dim=1, entities=facets)
+dofs = fem.locate_dofs_topological(V=V, entity_dim=2, entities=facets)
 
 # and use {py:func}`dirichletbc <dolfinx.fem.dirichletbc>` to create a
 # {py:class}`DirichletBC <dolfinx.fem.DirichletBC>` class that
@@ -160,7 +159,7 @@ L = ufl.inner(f, v) * ufl.dx + ufl.inner(g, v) * ufl.ds
 
 # +
 #problem = LinearProblem(a, L, bcs=[bc], petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
-problem = LinearProblem(a, L, bcs=[bc], petsc_options={"ksp_type": "preonly", "pc_type": "jacobi"}) # jacobi is faster (2x) than lu
+problem = LinearProblem(a, L, bcs=[bc], petsc_options={"ksp_type": "preonly", "pc_type": "jacobi"}) # jacobi is faster (2x) than lu (for 2d); over 100x for 3d!
 start_time=time.time()
 uh = problem.solve()
 end_time=time.time()
@@ -175,7 +174,7 @@ print("Number of degrees of freedom: ", problem.A.getSize()[0])
 # +
 with io.XDMFFile(msh.comm, "out_poisson/poisson.xdmf", "w") as file:
     file.write_mesh(msh)
-    file.write_function(uh)
+#    file.write_function(uh)
 # -
 with io.VTKFile(msh.comm, "out_poisson/poisson.vtk", "w") as file:
     file.write_mesh(msh)

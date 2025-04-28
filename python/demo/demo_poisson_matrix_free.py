@@ -84,6 +84,8 @@ import dolfinx
 import ufl
 from dolfinx import fem, la
 
+import time
+
 # We begin by using {py:func}`create_rectangle
 # <dolfinx.mesh.create_rectangle>` to create a rectangular
 # {py:class}`Mesh <dolfinx.mesh.Mesh>` of the domain, and creating a
@@ -246,7 +248,13 @@ def cg(comm, action_A, x: la.Vector, b: la.Vector, max_iter: int = 200, rtol: fl
 
 rtol = 1e-6
 u = fem.Function(V, dtype=dtype)
+
+start_time = time.time()
 iter_cg1 = cg(mesh.comm, action_A, u.x, b, max_iter=200, rtol=rtol)
+end_time = time.time()
+print(f"Time taken for CG solver: {(end_time - start_time) * 1000:.4f} ms")
+#print number of degrees of freedom
+print(f"Number of degrees of freedom: {u.x.index_map.size_local}")
 
 # Set BC values in the solution vector
 bc.set(u.x.array, alpha=1.0)

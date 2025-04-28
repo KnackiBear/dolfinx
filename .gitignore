@@ -129,3 +129,19 @@ _petsc*
 # Files created by demos
 core
 log.txt
+
+# Own files 
+/Active Notebooks/bunny_superlayers_10_lumped 
+/Active Notebooks/layers 
+/Active Notebooks/layers_from_step
+/Active Notebooks/partitioned_meshes 
+/Active Notebooks/superlayers 
+/BoxMeshes 
+/Meshes 
+/out_poisson
+/out_umesh 
+/output
+/vizs
+
+*.iges
+*.step

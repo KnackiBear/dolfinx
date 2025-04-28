@@ -100,11 +100,13 @@ import h5utils
 # <dolfinx.fem.FunctionSpace>` $V$ on the mesh.
 
 # +
+pctype = "lu" # "lu" is slower than jacobi
+
 msh = mesh.create_rectangle(
     comm=MPI.COMM_WORLD,
-    points=((0.0, 0.0), (2.0, 1.0)),
-    n=(32, 16),
-    cell_type=mesh.CellType.triangle,
+    points=((0.0, 0.0), (1.0, 1.0)),
+    n=(500, 500),
+    cell_type=mesh.CellType.quadrilateral, #faster than triangle?! 
 )
 V = fem.functionspace(msh, ("Lagrange", 1))
 # -
@@ -125,7 +127,7 @@ V = fem.functionspace(msh, ("Lagrange", 1))
 facets = mesh.locate_entities_boundary(
     msh,
     dim=(msh.topology.dim - 1),
-    marker=lambda x: np.isclose(x[0], 0.0) | np.isclose(x[0], 2.0),
+    marker=lambda x: np.isclose(x[0], 0.0) | np.isclose(x[0], 1.0) | np.isclose(x[1], 0.0) | np.isclose(x[1], 1.0),
 )
 
 # We now find the degrees-of-freedom that are associated with the
@@ -146,10 +148,12 @@ bc = fem.dirichletbc(value=ScalarType(0), dofs=dofs, V=V)
 u = ufl.TrialFunction(V)
 v = ufl.TestFunction(V)
 x = ufl.SpatialCoordinate(msh)
-f = 10 * ufl.exp(-((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2) / 0.02)
-g = ufl.sin(5 * x[0])
+
+f = ufl.sin(ufl.pi * x[0]) * ufl.sin(ufl.pi * x[1])
+#f = 10 * ufl.exp(-((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2) / 0.02)
+#g = ufl.sin(5 * x[0])
 a = ufl.inner(ufl.grad(u), ufl.grad(v)) * ufl.dx
-L = ufl.inner(f, v) * ufl.dx + ufl.inner(g, v) * ufl.ds
+L = ufl.inner(f, v) * ufl.dx# + ufl.inner(g, v) * ufl.ds
 # -
 
 # A {py:class}`LinearProblem <dolfinx.fem.petsc.LinearProblem>` object is
@@ -160,15 +164,17 @@ L = ufl.inner(f, v) * ufl.dx + ufl.inner(g, v) * ufl.ds
 
 # +
 #problem = LinearProblem(a, L, bcs=[bc], petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
-problem = LinearProblem(a, L, bcs=[bc], petsc_options={"ksp_type": "preonly", "pc_type": "jacobi"}) # jacobi is faster (2x) than lu
+
 start_time=time.time()
+problem = LinearProblem(a, L, bcs=[bc], petsc_options={"ksp_type": "preonly", "pc_type": pctype}) # jacobi is faster (2x) than lu
+
 uh = problem.solve()
 end_time=time.time()
-print("Time taken to solve the problem in ms: ", (end_time-start_time)*1000)
+print("Time taken to build and solve the problem in s: ", (end_time-start_time))
 #print number of degrees of freedom
 print("Number of degrees of freedom: ", problem.A.getSize()[0])
 # -
-
+#exit()
 # The solution can be written to a {py:class}`XDMFFile
 # <dolfinx.io.XDMFFile>` file visualization with ParaView or VisIt:
 
