@@ -145,3 +145,5 @@ log.txt
 
 *.iges
 *.step
+*.gif
+*.png
